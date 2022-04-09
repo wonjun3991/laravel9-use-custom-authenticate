@@ -1,50 +1,69 @@
 FROM php:8.1-cli
 
-
-# Set working directory
-WORKDIR /var/www
-
+#
 # Install dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libzip-dev \
-    libfreetype6-dev \
-    locales \
-    zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
-    git \
-    curl
+#
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN set -xe; \
+    apt-get update && \
+    apt-get install -y \
+        curl \
+        git \
+        zip \
+        zlib1g-dev \
+        libzip-dev \
+        libicu-dev && \
+    pecl install \
+        xdebug-3.1.4 && \
+    docker-php-ext-install \
+        zip \
+        pdo \
+        pdo_mysql \
+        intl && \
+    docker-php-ext-enable xdebug && \
+    echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    echo "xdebug.client_host = host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    echo "xdebug.idekey=PHPSTORM" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* \
+           /tmp/* \
+           /var/tmp/* \
+           /var/log/lastlog \
+           /var/log/faillog
 
-# Install extensions
-RUN docker-php-ext-install pdo_mysql zip exif pcntl
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-# RUN docker-php-ext-configure gd --with-gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ --with-png-dir=/usr/include/
-RUN docker-php-ext-install gd
+#
+# Workspace User
+#
 
+ARG APP_USER_ID=1000
+ARG APP_GROUP_ID=1000
 
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN set -xe; \
+    groupadd -f workspace && \
+    groupmod -g ${APP_GROUP_ID} workspace && \
+    useradd workspace -g workspace && \
+    mkdir -p /home/workspace && chmod 755 /home/workspace && chown workspace:workspace /home/workspace && \
+    usermod -u ${APP_USER_ID} -m -d /home/workspace workspace -s $(which bash) && \
+    chown -R workspace:workspace /var/www/html
 
-# Add user for laravel application
-RUN groupadd -g 1000 www
-RUN useradd -u 1000 -ms /bin/bash -g www www
+#
+# Set Timezone
+#
 
-# Copy existing application directory contents
-COPY . /var/www
+ARG TIME_ZONE='Asia/Seoul'
 
-# Copy existing application directory permissions
-COPY --chown=www:www . /var/www
+RUN ln -snf /usr/share/zoneinfo/${TIME_ZONE} /etc/localtime && echo ${TIME_ZONE} > /etc/timezone
 
-# Change current user to www
-USER www
+#
+# Composer Setup
+#
 
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
+ARG COMPOSER_VERSION=2.3.4
+ARG COMPOSER_REPO_PACKAGIST='https://packagist.jp'
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer --version=${COMPOSER_VERSION} && \
+    composer config -g repos.packagist composer ${COMPOSER_REPO_PACKAGIST}
+
+WORKDIR /var/www/html
