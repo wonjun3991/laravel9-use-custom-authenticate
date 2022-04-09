@@ -3,23 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use JetBrains\PhpStorm\Pure;
 
 class Member extends Model implements Authenticatable
 {
+    use HasFactory;
+
     protected $fillable = [
         'email',
         'password'
     ];
 
+    #[Pure]
     public function getAuthIdentifierName(): string
     {
-        return 'email';
+        return $this->getKeyName();
     }
 
+    #[Pure]
     public function getAuthIdentifier(): string
     {
-        return $this->email;
+        return $this->{$this->getAuthIdentifierName()};
     }
 
     public function getAuthPassword(): string
@@ -34,7 +40,6 @@ class Member extends Model implements Authenticatable
 
     public function setRememberToken($value): void
     {
-
     }
 
     public function getRememberTokenName(): ?string

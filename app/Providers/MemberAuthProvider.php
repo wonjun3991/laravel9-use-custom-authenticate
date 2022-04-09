@@ -10,7 +10,7 @@ class MemberAuthProvider implements UserProvider
 {
     public function validateCredentials(Authenticatable $member, array $credentials)
     {
-        return bcrypt($credentials['password']) === $member->getAuthPassword();
+        return md5($credentials['password']) === $member->getAuthPassword();
     }
 
     public function retrieveById($identifier)
@@ -25,12 +25,11 @@ class MemberAuthProvider implements UserProvider
 
     public function updateRememberToken(Authenticatable $user, $token): void
     {
-
     }
 
     public function retrieveByCredentials(array $credentials)
     {
-        return Member::where((new Member())->getAuthIdentifierName(), $credentials['email'])
+        return Member::where('email', $credentials['email'])
             ->first();
     }
 }
