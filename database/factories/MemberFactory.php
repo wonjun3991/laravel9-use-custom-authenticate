@@ -17,7 +17,8 @@ class MemberFactory extends Factory
     public function definition()
     {
         return [
-            //
+            'email' => 'hori3991@naver.com',
+            'password' => md5('1234')
         ];
     }
 }
