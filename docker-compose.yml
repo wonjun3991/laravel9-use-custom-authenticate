@@ -11,6 +11,6 @@ services:
         APP_GROUP_ID: 1000
         COMPOSER_VERSION: 2.0.12
     volumes:
-      - .:/var/www
+      - .:/var/www/html
     ports:
       - "8080:80"
